@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Complete com a sílaba que falta</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Comic Sans MS", "Trebuchet MS", sans-serif;
+    background: #f4f4f4;
+    margin: 0;
+    padding: 20px;
+    color: #333;
+  }
+  .folha {
+    max-width: 720px;
+    margin: 0 auto;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 18px 22px 50px;
+    position: relative;
+    box-shadow: 0 2px 10px rgba(0,0,0,.08);
+  }
+  h1 {
+    font-size: 15px;
+    font-weight: bold;
+    letter-spacing: .5px;
+    margin: 0 0 18px;
+    text-transform: uppercase;
+  }
+  .linha {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .fig {
+    font-size: 30px;
+    width: 44px;
+    text-align: center;
+    flex-shrink: 0;
+    line-height: 1;
+  }
+  .silabas {
+    display: flex;
+    gap: 4px;
+  }
+  .cel {
+    width: 38px;
+    height: 30px;
+    border: 1.5px solid #555;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    font-weight: bold;
+    text-transform: uppercase;
+    background: #fff;
+  }
+  .cel.preenchida {
+    background: #fafafa;
+  }
+  /* Espaço vazio onde a sílaba deve ser solta */
+  .cel.alvo {
+    border-style: dashed;
+    background: #f0f6ff;
+    border-color: #9cc3f0;
+  }
+  .cel.alvo.over { background: #d6e9ff; border-color: #2d8cf0; }
+  .cel.certo  { background: #c8f7c5 !important; border-color: #2ecc40; border-style: solid; }
+  .cel.errado { background: #ffd0d0 !important; border-color: #ff4136; border-style: solid; }
+
+  /* Banco de sílabas para arrastar */
+  .banco {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    margin: 26px auto 4px;
+    padding: 14px;
+    border: 2px dashed #ccc;
+    border-radius: 8px;
+    min-height: 56px;
+  }
+  .ficha {
+    min-width: 38px;
+    height: 30px;
+    padding: 0 8px;
+    border: 1.5px solid #ff7a1a;
+    border-radius: 6px;
+    background: #fff3e6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    font-weight: bold;
+    text-transform: uppercase;
+    cursor: grab;
+    user-select: none;
+    touch-action: none;
+    box-shadow: 0 1px 3px rgba(0,0,0,.12);
+  }
+  .ficha.arrastando {
+    opacity: .4;
+  }
+  /* Clone que segue o ponteiro */
+  .ficha.fantasma {
+    position: fixed;
+    z-index: 999;
+    pointer-events: none;
+    opacity: .9;
+    cursor: grabbing;
+    box-shadow: 0 4px 12px rgba(0,0,0,.25);
+  }
+
+  .barra {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 24px;
+  }
+  button {
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: bold;
+    padding: 9px 22px;
+    border: none;
+    border-radius: 20px;
+    cursor: pointer;
+    color: #fff;
+  }
+  .verificar { background: #ff7a1a; }
+  .verificar:hover { background: #e96c0e; }
+  .limpar { background: #888; }
+  .limpar:hover { background: #6f6f6f; }
+  #placar {
+    text-align: center;
+    margin-top: 12px;
+    font-weight: bold;
+    min-height: 20px;
+  }
+  .rodape {
+    position: absolute;
+    right: 14px;
+    bottom: 10px;
+    font-size: 11px;
+    color: #bbb;
+    letter-spacing: 1px;
+  }
+</style>
+</head>
+<body>
+  <div class="folha">
+    <h1>Arraste a sílaba que falta para o espaço certo.</h1>
+    <div id="atividade"></div>
+
+    <div id="banco" class="banco"></div>
+
+    <div class="barra">
+      <button class="verificar" onclick="verificar()">Verificar</button>
+      <button class="limpar" onclick="limpar()">Limpar</button>
+    </div>
+    <div id="placar"></div>
+
+    <div class="rodape">★ LIVEWORKSHEETS</div>
+  </div>
+
+<script>
+  // Cada palavra: figura (emoji) + sílabas.
+  // "f" = sílaba já preenchida | "?" = aluno deve completar (resposta após o "?")
+  const palavras = [
+    [ ["👞","SA","PA","?TO"],        ["🦤","TU","CA","?NO"] ],
+    [ ["🪆","BO","?NE","?CA"],       ["🎂","?BO","LO"] ],
+    [ ["💄","ES","CO","?VA"],        ["🪜","ES","CA","?DA"] ],
+    [ ["👄","BO","?CA"],             ["🔧","A","PON","TA","?DOR"] ],
+    [ ["🍌","BA","NA","?NA"],        ["🧴","CO","?LA"] ],
+    [ ["⚔️","ES","PA","?DA"],        ["🐎","CA","VA","?LO"] ],
+    [ ["👢","BO","?TA"],             ["🍲","PA","NE","?LA"] ],
+    [ ["🦜","A","RA","?RA"],         ["🐄","VA","?CA"] ],
+    [ ["🚽","BI","?DE"],             ["✏️","?CA","NE","TA"] ],
+  ];
+
+  const cont  = document.getElementById("atividade");
+  const banco = document.getElementById("banco");
+  const respostas = []; // sílabas que vão para o banco
+
+  // Monta o tabuleiro: célula preenchida = fixa | "?" = alvo vazio
+  palavras.forEach(linha => {
+    const divL = document.createElement("div");
+    divL.className = "linha";
+    linha.forEach(item => {
+      const [fig, ...sils] = item;
+      const divItem = document.createElement("div");
+      divItem.className = "item";
+      divItem.innerHTML = `<div class="fig">${fig}</div>`;
+      const wrap = document.createElement("div");
+      wrap.className = "silabas";
+      sils.forEach(s => {
+        if (s.startsWith("?")) {
+          const alvo = document.createElement("div");
+          alvo.className = "cel alvo";
+          alvo.dataset.resp = s.slice(1).toUpperCase();
+          wrap.appendChild(alvo);
+          respostas.push(alvo.dataset.resp);
+        } else {
+          const c = document.createElement("div");
+          c.className = "cel preenchida";
+          c.textContent = s;
+          wrap.appendChild(c);
+        }
+      });
+      divItem.appendChild(wrap);
+      divL.appendChild(divItem);
+    });
+    cont.appendChild(divL);
+  });
+
+  // Embaralha e cria as fichas arrastáveis
+  function embaralhar(a) {
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  embaralhar([...respostas]).forEach(texto => {
+    const f = document.createElement("div");
+    f.className = "ficha";
+    f.textContent = texto;
+    banco.appendChild(f);
+  });
+
+  // ---- Arrastar (mouse + toque via Pointer Events) ----
+  let arrastando = null;   // ficha original
+  let fantasma   = null;   // clone que segue o ponteiro
+  let alvoAtual  = null;   // alvo sob o ponteiro
+
+  function aoPressionar(e) {
+    const ficha = e.target.closest(".ficha");
+    if (!ficha || ficha.classList.contains("fantasma")) return;
+    e.preventDefault();
+    arrastando = ficha;
+    ficha.classList.add("arrastando");
+
+    fantasma = ficha.cloneNode(true);
+    fantasma.classList.add("fantasma");
+    fantasma.classList.remove("arrastando");
+    const r = ficha.getBoundingClientRect();
+    fantasma.style.width = r.width + "px";
+    fantasma.style.height = r.height + "px";
+    document.body.appendChild(fantasma);
+    moverFantasma(e.clientX, e.clientY);
+
+    document.addEventListener("pointermove", aoMover);
+    document.addEventListener("pointerup", aoSoltar);
+  }
+
+  function moverFantasma(x, y) {
+    fantasma.style.left = (x - fantasma.offsetWidth / 2) + "px";
+    fantasma.style.top  = (y - fantasma.offsetHeight / 2) + "px";
+  }
+
+  function aoMover(e) {
+    moverFantasma(e.clientX, e.clientY);
+    fantasma.style.display = "none";
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    fantasma.style.display = "";
+    const alvo = el && el.closest(".cel.alvo");
+    if (alvo !== alvoAtual) {
+      if (alvoAtual) alvoAtual.classList.remove("over");
+      alvoAtual = alvo;
+      if (alvoAtual) alvoAtual.classList.add("over");
+    }
+  }
+
+  function aoSoltar() {
+    document.removeEventListener("pointermove", aoMover);
+    document.removeEventListener("pointerup", aoSoltar);
+
+    if (alvoAtual) {
+      // Se o alvo já tinha uma ficha, devolve ela ao banco
+      const ocupante = alvoAtual.querySelector(".ficha");
+      if (ocupante) banco.appendChild(ocupante);
+      alvoAtual.appendChild(arrastando);
+      alvoAtual.classList.remove("over", "certo", "errado");
+    }
+
+    arrastando.classList.remove("arrastando");
+    fantasma.remove();
+    fantasma = arrastando = alvoAtual = null;
+  }
+
+  // Inicia o arraste tanto pelas fichas no banco quanto nos alvos
+  document.addEventListener("pointerdown", aoPressionar);
+
+  function verificar() {
+    const alvos = document.querySelectorAll(".cel.alvo");
+    let certos = 0;
+    alvos.forEach(alvo => {
+      const ficha = alvo.querySelector(".ficha");
+      const ok = ficha && ficha.textContent === alvo.dataset.resp;
+      alvo.classList.toggle("certo", !!ok);
+      alvo.classList.toggle("errado", !ok);
+      if (ok) certos++;
+    });
+    document.getElementById("placar").textContent =
+      `Você acertou ${certos} de ${alvos.length}!`;
+  }
+
+  function limpar() {
+    document.querySelectorAll(".cel.alvo").forEach(alvo => {
+      const ficha = alvo.querySelector(".ficha");
+      if (ficha) banco.appendChild(ficha);
+      alvo.classList.remove("certo", "errado", "over");
+    });
+    document.getElementById("placar").textContent = "";
+  }
+</script>
+</body>
+</html>
